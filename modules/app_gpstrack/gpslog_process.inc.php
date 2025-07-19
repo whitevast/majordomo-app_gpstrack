@@ -164,9 +164,9 @@ for ($i = 0; $i < $total; $i++) {
         // we are at location
         $rec['LOCATION_ID'] = $minimum_distance_location_id;
         if ($rec['LOCATIONS'] == '') {
-            $rec['LOCATIONS'] = $rec['LOCATION_ID'];
+            $rec['LOCATIONS'] = $locations[$i]['ID'];
         } else {
-            $rec['LOCATIONS'] .= ',' . $rec['LOCATION_ID'];
+            $rec['LOCATIONS'] .= ',' . $locations[$i]['ID'];
         }
         SQLUpdate('gpslog', $rec);
 
