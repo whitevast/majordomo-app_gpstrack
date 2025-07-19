@@ -772,6 +772,7 @@ class app_gpstrack extends module
  gpslog: DEVICEID varchar(255) NOT NULL DEFAULT ''
  gpslog: DEVICE_ID int(10) NOT NULL DEFAULT '0'
  gpslog: LOCATION_ID int(10) NOT NULL DEFAULT '0'
+ gpslog: LOCATIONS varchar(255) NOT NULL DEFAULT ''
  gpslog: ACCURACY float DEFAULT '0' NOT NULL
  gpslog: INDEX (DEVICE_ID)
  gpslog: INDEX (LOCATION_ID)

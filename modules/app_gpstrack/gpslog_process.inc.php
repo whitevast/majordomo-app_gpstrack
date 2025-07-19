@@ -79,6 +79,13 @@ $sqlQuery = "SELECT *
                        LIMIT 1";
 
 $previous_log_record = SQLSelectOne($sqlQuery);
+$previous_log_locations = array();
+if ($previous_log_record['LOCATIONS'] != '') {
+    $previous_log_locations = explode(',', $previous_log_record['LOCATIONS']);
+} elseif ($previous_log_record['LOCATION_ID']) {
+    $previous_log_locations[] = $previous_log_record['LOCATION_ID'];
+}
+
 if ($device['USER_ID']) {
     $sqlQuery = "SELECT *
                      FROM users
@@ -118,6 +125,9 @@ $lon = gr('longitude', 'float');
 $locations = SQLSelect("SELECT * FROM gpslocations");
 $total = count($locations);
 
+$minimum_location_distance = 0;
+$minimum_distance_location_id = 0;
+$minimum_distance_location_name = '';
 $location_found = 0;
 
 for ($i = 0; $i < $total; $i++) {
@@ -145,20 +155,25 @@ for ($i = 0; $i < $total; $i++) {
 
     if ($distance <= $locations[$i]['RANGE']) {
 
+        if ($minimum_location_distance == 0 || $distance < $minimum_location_distance) {
+            $minimum_location_distance = $distance;
+            $minimum_distance_location_id = $locations[$i]['ID'];
+            $minimum_distance_location_name = $locations[$i]['TITLE'];
+        }
+
         // we are at location
-        $rec['LOCATION_ID'] = $locations[$i]['ID'];
+        $rec['LOCATION_ID'] = $minimum_distance_location_id;
+        if ($rec['LOCATIONS'] == '') {
+            $rec['LOCATIONS'] = $rec['LOCATION_ID'];
+        } else {
+            $rec['LOCATIONS'] .= ',' . $rec['LOCATION_ID'];
+        }
         SQLUpdate('gpslog', $rec);
 
         //Debmes("Device (" . $device['TITLE'] . ") NEAR location " . $locations[$i]['TITLE']." (".json_encode($rec).")",'gps');
         $location_found = 1;
 
-        if (isset($user['LINKED_OBJECT']))
-            setGlobal($user['LINKED_OBJECT'] . '.seenAt', $locations[$i]['TITLE']);
-
-        $device['LOCATION'] = $locations[$i]['TITLE'];
-        SQLUPdate('gpsdevices', $device);
-
-        if ($previous_log_record['LOCATION_ID'] != $locations[$i]['ID']) {
+        if (!in_array($locations[$i]['ID'], $previous_log_locations)) {
             // entered location
             Debmes("Device (" . $device['TITLE'] . ") ENTERED location " . $locations[$i]['TITLE'] . ' (prev record: ' . json_encode($previous_log_record) . ')', 'gps');
             if ($locations[$i]['LINKED_OBJECT']) {
@@ -212,7 +227,7 @@ for ($i = 0; $i < $total; $i++) {
             }
         }
     } else {
-        if ($previous_log_record['LOCATION_ID'] == $locations[$i]['ID']) {
+        if (in_array($locations[$i]['ID'], $previous_log_locations)) {
             // left location
             Debmes("Device (" . $device['TITLE'] . ") LEFT location " . $locations[$i]['TITLE'] . ' (prev record: ' . json_encode($previous_log_record) . ')', 'gps');
             if ($locations[$i]['LINKED_OBJECT']) {
@@ -279,5 +294,12 @@ if (isset($user['LINKED_OBJECT']) && !$location_found) {
 
 if (!$location_found && $device['LOCATION'] != '') {
     $device['LOCATION'] = '';
-    SQLUPdate('gpsdevices', $device);
+    SQLUpdate('gpsdevices', $device);
+}
+
+if ($location_found) {
+    if (isset($user['LINKED_OBJECT']))
+        setGlobal($user['LINKED_OBJECT'] . '.seenAt', $minimum_distance_location_name);
+    $device['LOCATION'] = $minimum_distance_location_name;
+    SQLUpdate('gpsdevices', $device);
 }
