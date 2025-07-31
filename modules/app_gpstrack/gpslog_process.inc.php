@@ -163,7 +163,7 @@ for ($i = 0; $i < $total; $i++) {
 
         // we are at location
         $rec['LOCATION_ID'] = $minimum_distance_location_id;
-        if ($rec['LOCATIONS'] == '') {
+        if ((!isset($rec['LOCATIONS'])) || $rec['LOCATIONS'] == '') {
             $rec['LOCATIONS'] = $locations[$i]['ID'];
         } else {
             $rec['LOCATIONS'] .= ',' . $locations[$i]['ID'];
